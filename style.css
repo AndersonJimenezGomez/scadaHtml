@@ -1,0 +1,28 @@
+.title {
+    text-align: center; 
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 20px;
+    margin-top: 10px;
+    color: black !important;
+}
+
+.sub-container {
+    border-bottom: 1px solid #f1eaea
+}
+
+.temp-actual {
+    background-color: #92e8e8;
+}
+
+.title-form {
+    text-align: center; 
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 12px;
+    margin-top: 10px;
+    color: black !important;
+}
+.jumbotron {
+    background-color: inherit !important;
+}

@@ -1,0 +1,301 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script type="text/javascript" src="libreria.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+    <!--<script type="text/javascript" src="scada.js"></script>-->
+    <link href="style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body onload="init();">
+
+    <script>
+        var bandera = false;
+        var temp;
+        var periodoVal;
+        var voltaje;
+        var tempAct = 10;
+        var arrayTemps = [];
+        var arrayPeridos = [];
+        var tamañoArrayTemps;
+        var tamañoArrayPeriodos;
+        var periodoAcum = 0;
+        var finalizar;
+
+        var num = new Array();
+        var Entrada = new Array();
+        var SalidaSis = new Array();
+        var Referencia = new Array();
+        var error = new Array();
+        var u = new Array();
+        var graficar = [];
+        var den = [1.984, -0.9841];
+        Ts = 1;
+        i = 3;
+        report =[]
+
+        function apagar() {
+            document.getElementById("voltaje").value = 0;
+            clearInterval(finalizar);
+            bandera = false;
+        }
+
+
+        function onIniciarPro() {
+            temp = document.getElementById("temp").value;
+            periodoVal = document.getElementById("periodo").value;
+            voltaje = document.getElementById("voltaje").value;
+
+            if (temp != '' && periodoVal != '' && voltaje != '') {
+                document.getElementById("grafica").style.display = "block";
+                iniciarlizarVars();
+                graficar();
+
+            } else {
+                alert('Debe ingresar una Temp Referencia, Periodo y un Voltaje para realizar la Preparación.');
+
+            }
+        }
+
+        function iniciarlizarVars() {
+            temp = document.getElementById("temp").value;
+            periodoVal = document.getElementById("periodo").value;
+            voltaje = document.getElementById("voltaje").value;
+            finalizar = setInterval(calcularTempActual, periodoVal * 1000);
+            console.log(tempAct + "" + temp);
+
+        }
+
+        function calcularTempActual() {
+            tamañoArrayTemps = arrayTemps.length;
+            tamañoArrayPeriodos = arrayPeridos.length;
+            voltaje = document.getElementById("voltaje").value;
+            if (bandera == false) {
+                console.log("estoy en el if" + tempAct);
+                arrayPeridos.push(periodoVal);
+                arrayTemps.push(tempAct);
+                arrayPeridos.push(periodoVal);
+                document.getElementById("tempActual").value = tempAct;
+                console.log("estoy en el if" + tempAct);
+                var num = arrayPeridos[tamañoArrayPeriodos - 1];
+                periodoAcum = Number(periodoVal) + Number(num);
+                bandera = true;
+
+            }
+            else {
+                for (var i = 0; i < arrayTemps.length; i++) {
+
+                    console.log("en el for la temp" + tempAct);
+                    console.log("tam array" + arrayTemps.length);
+                    console.log('voltaje:' + voltaje);
+                    tempAct = (voltaje * periodoVal) + arrayTemps[tamañoArrayTemps - 1];
+                    var num = 0;
+                    num = arrayPeridos[tamañoArrayPeriodos - 1];
+                    console.log("num" + num + "  " + periodoVal)
+                    periodoAcum = Number(periodoVal) + Number(num);
+
+                    document.getElementById("tempActual").value = tempAct;
+
+                    console.log("estoy en el for: " + tempAct);
+                }
+                arrayTemps.push(tempAct);
+                arrayPeridos.push(periodoAcum);
+            }
+        }
+        function guardarArchivo() {
+            var temperaturas = "    Inicial: " + 10 + "\n";
+            console.log("guardar archivo", report)
+            for (var i = 0; i < report.length; i++) {
+                if (i > 0) {
+                    temperaturas = temperaturas + " [tiempo:" + report[i].tiempo + " temp: " + report[i].temperatura + "]\n";
+                }
+                else {
+                    temperaturas = temperaturas + " [tiempo:" + 0 + " temp: " + report[i].temperatura + "]\n";
+                }
+            }
+            WriteFile(temperaturas);
+        }
+
+        function graficar() {
+            var random = new TimeSeries();
+            var line1 = new TimeSeries();
+            setInterval(function () {
+                line1.append(Date.now(), temp);
+                random.append(Date.now(), arrayTemps[tamañoArrayTemps - 1]);
+            }, periodoVal * 1000);
+
+            var chart = new SmoothieChart({ grid: { strokeStyle: 'dark', fillStyle: 'White' }, labels: { fillStyle: 'rgb(60, 0, 0)' }, responsive: true });
+            chart.addTimeSeries(line1, { strokeStyle: 'yellow', fillStyle: 'rgba(255,255,0,0.3)', lineWidth: 6 });
+            chart.addTimeSeries(random, { strokeStyle: 'blue', fillStyle: 'rgba(0,0,255,0.3)', lineWidth: 6 });
+            chart.streamTo(document.getElementById("chart-responsive"), periodoVal * 1000);
+        }
+
+
+        function WriteFile(contenido) {
+            var file = new File([contenido], "temperaturas.txt", { type: "text/plain;charset=utf-8" });
+
+            // obtienes una URL para el fichero que acabas de crear
+            var url = window.URL.createObjectURL(file);
+
+            // creas un enlace y lo añades al documento
+            if(document.getElementById("link")){
+                document.getElementById("link").remove();
+            }
+            var a = document.createElement("a");
+            a.setAttribute("id","link")
+            document.body.appendChild(a);
+
+            // actualizas los parámetros del enlace para descargar el fichero creado
+            a.href = url;
+            a.innerHTML = "Descargar información del proceso.";
+            a.download = file.name;
+
+        }
+
+        function ejecutar() {
+
+
+            num[0] = 1.1 * 0.008594;
+            num[1] = 1.1 * 0.008548;
+
+            Entrada[0] = document.getElementById("temp").value;
+            Entrada[1] = 1;
+            Entrada[2] = document.getElementById("periodo").value;
+
+
+            SalidaSis[0] = 0;
+            SalidaSis[1] = 0;
+            SalidaSis[2] = 0;
+            SalidaSis[3] = 0;
+
+            Referencia[0] = 0;
+            Referencia[1] = 0;
+            Referencia[2] = 0;
+            Referencia[i] = 1;
+
+            error = Referencia[i];
+
+
+            u[0] = 1;
+            u[1] = 1;
+            u[2] = 1;
+            u[3] = 1;
+
+
+            error[0] = 0;
+            error[1] = 0;
+            error[2] = 0;
+            error[3] = 0;
+            error[4] = 0;
+            graficar1();
+            setInterval(cargarDatos, 200);
+
+
+        }
+        function cargarDatos() {
+
+            Referencia[i] = 1;
+            SalidaSis[i] = (num[0] * u[i - 1]) + (num[1] * u[i - 2]) + (den[0] * SalidaSis[i - 1]) + (den[1] * SalidaSis[i - 2]);
+            report.push({
+                tiempo: i,
+                temperatura: SalidaSis[i]
+            })
+            document.getElementById("tempActual").value = SalidaSis[i];
+            i = i + 1;
+
+            u[i] = document.getElementById("voltaje").value;
+            console.log("new voltage: " + u[i]);
+        }
+        function graficar1() {
+
+            var random = new TimeSeries();
+            setInterval(function () {
+                random.append(Date.now(), SalidaSis[SalidaSis.length - 1]);
+            }, Entrada[2] * 1000);
+            var chart = new SmoothieChart({ grid: { strokeStyle: 'dark', fillStyle: 'White' }, labels: { fillStyle: 'rgb(60, 0, 0)' }, responsive: true });
+            chart.addTimeSeries(random, { strokeStyle: 'blue', fillStyle: 'rgba(0,0,255,0.3)', lineWidth: 6 });
+            chart.streamTo(document.getElementById("chart-responsive"), Entrada[2] * 1000);
+        }
+
+
+
+
+
+
+
+    </script>
+    <div class="container">
+        <div class="header clearfix sub-container">
+            <h3 class="text-muted title">Preparar Pizza</h3>
+        </div>
+        <br />
+        <div class="row">
+            <div class="jumbotron col-lg-5">
+                <div class="row marketing">
+                    <div class="col-lg-6">
+
+                        <div id="content"></div>
+
+                    </div>
+                </div>
+                <div class="col-8">
+                    <button type="button" class="btn btn-info" onclick="ejecutar()">On</button>
+                    <button type="button" id="btnApagar" class=" btn btn-danger" onclick="apagar()">Off</button>
+                    <button type="button" id="btnApagar" class=" btn btn-danger" onclick="guardarArchivo()">Guardar</button>
+
+                </div>
+
+                </br>
+
+                <div id="divTemperatura">
+                    <form>
+                        <div class="form-group row">
+                            <label for="inputPassword" class="col-sm-3 col-form-label title-form">Temp
+                                Referencia</label>
+                            <div class="row col-sm-9">
+                                <div class="col" name="temp">
+                                    <input type="text" name="Temperatura" id="temp" class="form-control"
+                                        id="inputPassword">
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="form-group row">
+                            <label for="staticEmail" class="col-sm-3 col-form-label title-form">Temp Actual</label>
+                            <div class="col-sm-3">
+                                <input type="text" id="tempActual" class="form-control-plaintext temp-actual" readonly>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputPassword" class="col-sm-3 col-form-label title-form">Periodo (seg)</label>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" id="periodo">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="inputPassword" class="col-sm-3 col-form-label title-form">Voltaje</label>
+                            <div class="row col-sm-9">
+                                <div class="col">
+                                    <input type="number" class="form-control" id="voltaje">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-7" id="grafica">
+                <div></div>
+                <canvas id="chart-responsive" width="700" height="500"></canvas>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<footer>
+</footer>
+
+</html>
